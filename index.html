@@ -28,14 +28,20 @@
 
         #input-area { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #eee; background: #fff; align-items: center; }
         #user-input { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ddd; outline: none; font-size: 16px; }
-        #send-btn, #uploadBtn { background: var(--accent); color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+        #send-btn { background: var(--accent); color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
 
+        .typing { display: flex; align-items: center; justify-content: center; width: 50px; height: 12px; }
         .typing span { width: 6px; height: 6px; background: #999; border-radius: 50%; display: inline-block; animation: blink 1s infinite; margin: 0 2px; }
         @keyframes blink { 50% { opacity: .3; } }
 
         .panel { display: none; position: fixed; inset: 0; background: #fff; z-index: 120; padding: 20px; overflow: auto; box-sizing: border-box; }
         .panel h2 { margin-top: 0; color: var(--accent); }
-        #logo { display: block; width: 150px; margin: 60px auto; opacity: 0.8; border-radius: 20px; }
+        
+        /* Splash Container for Logo */
+        #splash-container { display: flex; flex-direction: column; align-items: center; justify-content: center; margin: auto; padding: 40px 20px; text-align: center; }
+        #logo { display: block; width: 120px; height: 120px; object-fit: cover; border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); margin-bottom: 16px; }
+        #splash-title { color: #333; font-size: 22px; font-weight: 600; margin: 0; opacity: 0.9; }
+        #splash-subtitle { color: #777; font-size: 14px; margin: 6px 0 0 0; }
         img.chat-img { width: 100%; border-radius: 10px; margin-top: 10px; border: 1px solid #ddd; }
     </style>
 </head>
@@ -60,12 +66,16 @@
     </div>
 
     <div id="chat-box">
-        <img id="logo" src="https://kommodo.ai/i/UeCZREdVHDA4q1UEwOoO" alt="Kevaris Logo">
+        <!-- Splash screen container -->
+        <div id="splash-container">
+            <!-- Replace the src URL below with your active logo image path -->
+            <img id="logo" src="https://kommodo.ai/i/UeCZREdVHDA4q1UEwOoO.png" alt="Kevaris Logo">
+            <h3 id="splash-title">How can I help you today?</h3>
+            <p id="splash-subtitle">Kevaris Intelligence Systems</p>
+        </div>
     </div>
 
     <div id="input-area">
-        <input type="file" id="file-input" hidden accept="image/*">
-        <button id="uploadBtn">📎</button>
         <input id="user-input" placeholder="Type a message..." autocomplete="off">
         <button id="send-btn">➔</button>
     </div>
@@ -73,7 +83,7 @@
 
 <div id="about" class="panel">
     <div class="about-card" style="background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; text-align: center;">
-        <img src="https://kommodo.ai/i/UeCZREdVHDA4q1UEwOoO" style="width: 100px; border-radius: 20px; margin-bottom: 20px;">
+        <img src="https://kommodo.ai/i/UeCZREdVHDA4q1UEwOoO.png" style="width: 100px; border-radius: 20px; margin-bottom: 20px;" alt="Kevaris">
         <h2 style="color: #00735a; font-size: 32px; margin-bottom: 5px;">Kevaris Intelligence</h2>
         <p style="color: #777; font-size: 14px; margin-bottom: 20px;"><b>Version:</b>Kevaris 2.0 </p>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
@@ -120,11 +130,18 @@ let memory = JSON.parse(localStorage.getItem("kevaris_mem") || "[]");
 const chatBox = document.getElementById("chat-box");
 const userInput = document.getElementById("user-input");
 const sideMenu = document.getElementById("side-menu");
-const logo = document.getElementById("logo");
+
+function hideSplash() {
+    const splash = document.getElementById("splash-container");
+    if (splash) {
+        splash.style.display = "none";
+        splash.remove();
+    }
+}
 
 window.onload = () => {
     if (memory.length > 0) {
-        if (logo) logo.style.display = "none";
+        hideSplash();
         memory.forEach(m => {
             if (m.type === "image") {
                 bubble("bot", `🎨 <i>Visualizing...</i><br><img class="chat-img" src="${m.content}">`);
@@ -157,15 +174,13 @@ async function send() {
     const t = userInput.value.trim();
     if (!t) return;
     userInput.value = "";
-    if (logo) logo.style.display = "none";
+    
+    hideSplash();
 
     bubble("user", t);
     memory.push({ role: "user", content: t });
 
     const loader = showTyping();
-    const botBubble = document.createElement("div");
-    botBubble.className = "bubble bot";
-    chatBox.appendChild(botBubble);
 
     try {
         const r = await fetch(LOCAL_GATEWAY_URL, {
@@ -181,6 +196,11 @@ async function send() {
         const j = await r.json();
         loader.remove();
         
+        // Spawn response bubble ONLY after the loader is removed
+        const botBubble = document.createElement("div");
+        botBubble.className = "bubble bot";
+        chatBox.appendChild(botBubble);
+
         if (!r.ok) {
             botBubble.style.color = "#ff3333";
             botBubble.style.fontWeight = "bold";
@@ -201,8 +221,11 @@ async function send() {
 
     } catch (err) {
         loader.remove();
+        const botBubble = document.createElement("div");
+        botBubble.className = "bubble bot";
         botBubble.style.color = "#ff3333";
         botBubble.innerHTML = "🔴 CONNECTION FAILURE: Unable to link with secure Kevaris server module.";
+        chatBox.appendChild(botBubble);
     }
     chatBox.scrollTop = chatBox.scrollHeight;
 }
@@ -214,10 +237,9 @@ document.getElementById("menu-btn").onclick = () => sideMenu.style.transform = "
 document.getElementById("closeMenuBtn").onclick = () => sideMenu.style.transform = "translateX(-100%)";
 document.getElementById("clearChatBtn").onclick = () => {
     if (confirm("Clear history?")) {
-        chatBox.innerHTML = '<img id="logo" src="https://kommodo.ai/i/UeCZREdVHDA4q1UEwOoO" alt="Kevaris Logo">';
+        location.reload();
         memory = [];
         localStorage.removeItem("kevaris_mem");
-        sideMenu.style.transform = "translateX(-100%)";
     }
 };
 
@@ -245,21 +267,6 @@ function addPlan() {
     const t = document.getElementById("planTask").value;
     if (d && t) { document.getElementById("planList").innerHTML += `<p><b>${d}</b>: ${t}</p>`; document.getElementById("planTask").value = ""; }
 }
-
-document.getElementById("uploadBtn").onclick = () => document.getElementById("file-input").click();
-document.getElementById("file-input").onchange = function() {
-    const file = this.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            if (logo) logo.style.display = "none";
-            bubble("user", `<img class="chat-img" src="${e.target.result}">`);
-            bubble("bot", "I have received your image and stored it in the session context.");
-        };
-        reader.readAsDataURL(file);
-    }
-};
 </script>
 </body>
 </html>
-                  
