@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kevaris — AI Assistant</title>
+    <style>
+        :root { --accent: #00735a; --user: #d2f7e5; --bot: #f1f1f1; }
+        html, body { margin: 0; height: 100%; font-family: Arial, sans-serif; overflow: hidden; background: #fff; }
+        .app { display: flex; flex-direction: column; height: 100vh; }
+
+        header { background: var(--accent); color: #fff; padding: 12px; text-align: center; position: relative; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #menu-btn { position: absolute; left: 12px; top: 10px; background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; }
+
+        #side-menu {
+            position: fixed; top: 0; left: 0; width: 80%; max-width: 300px; height: 100%;
+            background: #00735a; padding: 20px; z-index: 100; transition: transform 0.3s ease-out;
+            display: flex; flex-direction: column; gap: 10px; transform: translateX(-100%);
+            box-sizing: border-box;
+        }
+        #side-menu button { background: #00614c; color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 16px; cursor: pointer; text-align: left; }
+        #side-menu hr { border: 0; border-top: 1px solid rgba(255,255,255,0.2); margin: 10px 0; }
+
+        #chat-box { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: #fff; }
+        .bubble { max-width: 80%; padding: 12px; border-radius: 16px; word-wrap: break-word; line-height: 1.4; font-size: 15px; }
+        .user { align-self: flex-end; background: var(--user); color: #000; border-bottom-right-radius: 2px; }
+        .bot { align-self: flex-start; background: var(--bot); color: #000; border-bottom-left-radius: 2px; }
+
+        #input-area { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #eee; background: #fff; align-items: center; }
+        #user-input { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ddd; outline: none; font-size: 16px; }
+        #send-btn, #uploadBtn { background: var(--accent); color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+
+        .typing span { width: 6px; height: 6px; background: #999; border-radius: 50%; display: inline-block; animation: blink 1s infinite; margin: 0 2px; }
+        @keyframes blink { 50% { opacity: .3; } }
+
+        .panel { display: none; position: fixed; inset: 0; background: #fff; z-index: 120; padding: 20px; overflow: auto; box-sizing: border-box; }
+        .panel h2 { margin-top: 0; color: var(--accent); }
+        #logo { display: block; width: 150px; margin: 60px auto; opacity: 0.8; }
+        img.chat-img { width: 100%; border-radius: 10px; margin-top: 10px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <header>
+        <button id="menu-btn">☰</button>
+        <strong>Kevaris — AI Chatbot</strong>
+    </header>
+
+    <div id="side-menu">
+        <button id="clearChatBtn">🗑️ Clear Chat</button>
+        <button id="aboutBtn">ℹ️ About</button>
+        <hr>
+        <button id="notesBtn">📘 Notes</button>
+        <button id="calcBtn">➗ Calculator</button>
+        <button id="reminderBtn">🕒 Reminders</button>
+        <button id="plannerBtn">📅 Event Planner</button>
+        <hr>
+        <button id="closeMenuBtn">❌ Close Menu</button>
+    </div>
+
+    <div id="chat-box">
+        <img id="logo" src="Kevaris_Logo.jpg" alt="Kevaris Logo">
+    </div>
+
+    <div id="input-area">
+        <input type="file" id="file-input" hidden accept="image/*">
+        <button id="uploadBtn">📎</button>
+        <input id="user-input" placeholder="Type a message..." autocomplete="off">
+        <button id="send-btn">➔</button>
+    </div>
+</div>
+
+<div id="about" class="panel">
+    <div class="about-card" style="background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; text-align: center;">
+        <img src="Kevaris_Logo.jpg" style="width: 100px; border-radius: 20px; margin-bottom: 20px;">
+        <h2 style="color: #00735a; font-size: 32px; margin-bottom: 5px;">Kevaris Intelligence</h2>
+        <p style="color: #777; font-size: 14px; margin-bottom: 20px;"><b>Version:</b>Kevaris 2.0 </p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="color: #444; line-height: 1.6; font-size: 16px; text-align: justify;">
+            <b>Kevaris</b> is a sophisticated digital ecosystem designed to bridge the gap between complex computational logic and human-centric interaction. Born from the precision of modern software engineering, this assistant is optimized for high-frequency reasoning, real-time data synthesis, and creative visual generation.
+        </p>
+        <div style="text-align: left; background: #f9f9f9; padding: 20px; border-radius: 15px; margin: 25px 0; border-left: 5px solid #00735a;">
+            <h4 style="margin-top: 0; color: #00735a; font-size: 18px;">Core Architecture</h4>
+            <ul style="padding-left: 20px; font-size: 14px; color: #555;">
+                <li style="margin-bottom: 8px;"><b>Neural Processing:</b> Driven by Llama 3.3 for deep logic.</li>
+                <li style="margin-bottom: 8px;"><b>Omni-Search Protocol:</b> Real-time web insights via Serper.</li>
+                <li style="margin-bottom: 8px;"><b>Neural Imaging:</b> Visual generation via Pollinations AI.</li>
+            </ul>
+        </div>
+        <div style="margin-top: 25px; padding: 15px; border-radius: 12px; background: #00735a; color: white;">
+            <span style="font-size: 14px; opacity: 0.9;">Chief Developer</span><br>
+            <strong style="font-size: 18px;">RIDDHI PANDIT</strong>
+        </div>
+        <div>
+            <p style="margin-top: 25px; font-family: monospace; font-size: 13px; letter-spacing: 1px;">
+                <span style="color: #00735a;"><b>K</b></span><span style="opacity: 0.5;">inetic</span>
+                <span style="color: #00735a;"><b>E</b></span><span style="opacity: 0.5;">volutionary</span>
+                <span style="color: #00735a;"><b>V</b></span><span style="opacity: 0.5;">ersioned</span>
+                <span style="color: #00735a;"><b>A</b></span><span style="opacity: 0.5;">lgorithm for</span>
+                <span style="color: #00735a;"><b>R</b></span><span style="opacity: 0.5;">eal-time</span>
+                <span style="color: #00735a;"><b>I</b></span><span style="opacity: 0.5;">nformation</span>
+                <span style="color: #00735a;"><b>S</b></span><span style="opacity: 0.5;">ynthesis</span>
+            </p>
+            <br> — By Riddhi Pandit and Salif Khan
+        </div>
+        <button onclick="closePanel()" style="margin-top: 20px; background: #00735a; color: white; border: none; padding: 12px 30px; border-radius: 25px; cursor: pointer;">Return to Command Center</button>
+    </div>
+</div>
+
+<div id="notes" class="panel"><h2>Notes</h2><textarea id="notesArea" style="width:100%; height:60%; border: 1px solid #ddd; padding: 10px; border-radius: 8px;"></textarea><br><br><button onclick="closePanel()">Close</button></div>
+<div id="calc" class="panel"><h2>Calculator</h2><input id="calcInput" style="padding:10px; width:70%;" placeholder="e.g. 50 * 2"><button onclick="solveCalc()" style="padding:10px;">Solve</button><p id="calcResult" style="font-size: 20px; font-weight: bold;"></p><button onclick="closePanel()">Close</button></div>
+<div id="reminder" class="panel"><h2>Reminders</h2><input id="remInput" style="padding:10px; width:70%;"><button onclick="addReminder()" style="padding:10px;">Add</button><ul id="remList"></ul><button onclick="closePanel()">Close</button></div>
+<div id="planner" class="panel"><h2>Event Planner</h2><input type="date" id="planDate" style="padding:10px;"><br><br><input id="planTask" style="padding:10px; width:70%;" placeholder="Enter task..."><button onclick="addPlan()" style="padding:10px;">Add</button><div id="planList" style="margin-top:10px;"></div><button onclick="closePanel()">Close</button></div>
+
+<script>
+const HARDWARE_CODE = "kevaris 57744"; 
+// Update this URL once your Render/Railway server backend goes live!
+const LOCAL_GATEWAY_URL = "https://kevaris-backend.onrender.com/chat";
+let memory = JSON.parse(localStorage.getItem("kevaris_mem") || "[]");
+const chatBox = document.getElementById("chat-box");
+const userInput = document.getElementById("user-input");
+const sideMenu = document.getElementById("side-menu");
+const logo = document.getElementById("logo");
+
+window.onload = () => {
+    if (memory.length > 0) {
+        if (logo) logo.style.display = "none";
+        memory.forEach(m => {
+            if (m.type === "image") {
+                bubble("bot", `🎨 <i>Visualizing...</i><br><img class="chat-img" src="${m.content}">`);
+            } else {
+                bubble(m.role === "user" ? "user" : "bot", m.content);
+            }
+        });
+    }
+};
+
+function bubble(role, text) {
+    const d = document.createElement("div");
+    d.className = "bubble " + role;
+    d.innerHTML = text;
+    chatBox.appendChild(d);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function showTyping() {
+    const d = document.createElement("div");
+    d.className = "bubble bot typing";
+    d.id = "temp-typing";
+    d.innerHTML = "<span></span><span></span><span></span>";
+    chatBox.appendChild(d);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    return d;
+}
+
+async function send() {
+    const t = userInput.value.trim();
+    if (!t) return;
+    userInput.value = "";
+    if (logo) logo.style.display = "none";
+
+    bubble("user", t);
+    memory.push({ role: "user", content: t });
+
+    const loader = showTyping();
+    const botBubble = document.createElement("div");
+    botBubble.className = "bubble bot";
+    chatBox.appendChild(botBubble);
+
+    try {
+        const r = await fetch(LOCAL_GATEWAY_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                code: HARDWARE_CODE,
+                message: t,
+                history: memory.slice(-6).map(m => ({role: m.role, content: m.content}))
+            })
+        });
+
+        const j = await r.json();
+        loader.remove();
+        
+        if (!r.ok) {
+            botBubble.style.color = "#ff3333";
+            botBubble.style.fontWeight = "bold";
+            botBubble.innerHTML = j.error || "System Error.";
+            return;
+        }
+
+        if (j.type === "image") {
+            botBubble.innerHTML = `🎨 <i>Visualizing: ${j.description}...</i><br><img class="chat-img" src="${j.url}">`;
+            memory.push({ role: "assistant", type: "image", content: j.url });
+        } else {
+            botBubble.innerHTML = j.reply.replace(/\n/g, "<br>");
+            memory.push({ role: "assistant", type: "text", content: j.reply });
+        }
+
+        if (memory.length > 12) memory.shift();
+        localStorage.setItem("kevaris_mem", JSON.stringify(memory));
+
+    } catch (err) {
+        loader.remove();
+        botBubble.style.color = "#ff3333";
+        botBubble.innerHTML = "🔴 CONNECTION FAILURE: Unable to link with secure Kevaris server module.";
+    }
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// Event Listeners
+document.getElementById("send-btn").onclick = send;
+userInput.onkeypress = e => e.key === "Enter" && send();
+document.getElementById("menu-btn").onclick = () => sideMenu.style.transform = "translateX(0)";
+document.getElementById("closeMenuBtn").onclick = () => sideMenu.style.transform = "translateX(-100%)";
+document.getElementById("clearChatBtn").onclick = () => {
+    if (confirm("Clear history?")) {
+        chatBox.innerHTML = '<img id="logo" src="Kevaris_Logo.jpg" alt="Kevaris Logo">';
+        memory = [];
+        localStorage.removeItem("kevaris_mem");
+        sideMenu.style.transform = "translateX(-100%)";
+    }
+};
+
+function openPanel(id) { document.getElementById(id).style.display = "block"; sideMenu.style.transform = "translateX(-100%)"; }
+function closePanel() { document.querySelectorAll(".panel").forEach(p => p.style.display = "none"); }
+
+document.getElementById("aboutBtn").onclick = () => openPanel("about");
+document.getElementById("notesBtn").onclick = () => openPanel("notes");
+document.getElementById("calcBtn").onclick = () => openPanel("calc");
+document.getElementById("reminderBtn").onclick = () => openPanel("reminder");
+document.getElementById("plannerBtn").onclick = () => openPanel("planner");
+
+function solveCalc() {
+    try { document.getElementById("calcResult").innerText = "Result: " + eval(document.getElementById("calcInput").value); }
+    catch { document.getElementById("calcResult").innerText = "Invalid Math"; }
+}
+
+function addReminder() {
+    const v = document.getElementById("remInput").value;
+    if (v) { document.getElementById("remList").innerHTML += `<li>${v}</li>`; document.getElementById("remInput").value = ""; }
+}
+
+function addPlan() {
+    const d = document.getElementById("planDate").value;
+    const t = document.getElementById("planTask").value;
+    if (d && t) { document.getElementById("planList").innerHTML += `<p><b>${d}</b>: ${t}</p>`; document.getElementById("planTask").value = ""; }
+}
+
+document.getElementById("uploadBtn").onclick = () => document.getElementById("file-input").click();
+document.getElementById("file-input").onchange = function() {
+    const file = this.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            if (logo) logo.style.display = "none";
+            bubble("user", `<img class="chat-img" src="${e.target.result}">`);
+            bubble("bot", "I have received your image and stored it in the session context.");
+        };
+        reader.readAsDataURL(file);
+    }
+};
+</script>
+</body>
+</html>
