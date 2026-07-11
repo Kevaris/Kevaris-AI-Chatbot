@@ -9,7 +9,7 @@ CORS(app)  # Enables cross-origin framework browser requests securely
 
 # --- SERVER CONFIGURATION CONTROL ---
 # Set this to True for normal operations, or False to shut down response services
-SERVER_STATUS = True
+SERVER_STATUS = False
 
 # Global Constants & Server Keys
 HARDWARE_CODE = "kevaris 57744"
