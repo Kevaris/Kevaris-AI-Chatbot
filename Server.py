@@ -54,7 +54,7 @@ def chat_gateway():
     if not SERVER_STATUS:
         return jsonify({
             "type": "text", 
-            "reply": "server is correctly turned off by Riddhi pandit, please try again later"
+            "reply": "**server is currently turned off by Riddhi pandit, please try again later**"
         })
 
     user_message = data.get("message", "").strip()
