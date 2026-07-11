@@ -7,9 +7,9 @@ import os
 app = Flask(__name__)
 CORS(app)  # Enables cross-origin framework browser requests securely
 
-# Global Control Configuration Variable
-# Set to True for normal operation. Set to False to put Kevaris in maintenance shutdown mode.
-SERVER_ACTIVE = True
+# --- SERVER CONFIGURATION CONTROL ---
+# Set this to True for normal operations, or False to shut down response services
+SERVER_STATUS = True
 
 # Global Constants & Server Keys
 HARDWARE_CODE = "kevaris 57744"
@@ -53,8 +53,8 @@ def chat_gateway():
     if data.get("code") != HARDWARE_CODE:
         return jsonify({"error": "🔴 HARDWARE REJECTION: Unauthorized Device Token Blueprint Security Exception."}), 403
 
-    # 2. Global Maintenance Mode Check Control Intercept
-    if not SERVER_ACTIVE:
+    # 2. Master Kill Switch / Server Status Intercept
+    if not SERVER_STATUS:
         return jsonify({
             "type": "text", 
             "reply": "server is correctly turned off by Riddhi pandit, please try again later"
@@ -84,6 +84,7 @@ def chat_gateway():
     # 5. Fallback: Core Text Conversation LLM Process
     formatted_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for turn in history:
+        # Clean any raw HTML strings out of local storage context blocks
         content = turn.get("content", "")
         if not content.startswith("<img"):
             formatted_messages.append({"role": turn.get("role"), "content": content})
@@ -103,12 +104,12 @@ def chat_gateway():
         
         print("API Response:", response_json) 
         
-        # Safe structural check for error payloads returned from API
+        # Safe Response Framework (Handles API outages cleanly without code failure)
         if 'error' in response_json:
-            return jsonify({"error": f"Groq Provider Error: {response_json['error'].get('message', 'Authentication or quota issue.')}"}), 400
+            return jsonify({"error": f"Groq Engine Error: {response_json['error'].get('message', 'Access Restricted')}"}), 400
             
         if 'choices' not in response_json or not response_json['choices']:
-            return jsonify({"error": "Unexpected JSON object structural returned from upstream API."}), 500
+            return jsonify({"error": "Invalid engine response payload received."}), 500
 
         reply_text = response_json['choices'][0]['message']['content']
         return jsonify({"type": "text", "reply": reply_text})
