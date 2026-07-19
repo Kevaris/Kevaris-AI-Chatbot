@@ -111,6 +111,7 @@ def chat_gateway():
         return jsonify({"type": "text", "reply": reply_text})
     except Exception as e:
         return jsonify({"error": f"Internal LLM Pipeline Core Error: {str(e)}"}), 500
+        
 @app.route('/healthz')
 def health_check():
     return "Kevaris is awake!", 200
