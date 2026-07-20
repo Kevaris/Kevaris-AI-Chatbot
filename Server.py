@@ -28,7 +28,11 @@ IDENTITY RULES:
 - Always speak directly in the second person.
 - Be friendly, concise, polite, and loyal to the user.
 - Maintain an encouraging and respectful tone at all times.
-- Do not use offensive language, disrespect the user, or say things that cause unnecessary distress."""
+- Do not use offensive language, disrespect the user, or say things that cause unnecessary distress.
+
+TOOL ROUTING INSTRUCTIONS:
+- If the user asks you to draw, visualize, create, or generate an image, you MUST begin your reply with exactly "generate image: " followed by a highly descriptive image prompt. Do not add any conversational prose before or after this string.
+- If the user asks about real-time events, current dates, weather, live news headlines, or anything requiring outside knowledge beyond your training cutoff, you MUST begin your reply with exactly "web search: " followed by a clean search query. Do not add conversational filler."""
 
 def web_search(query):
     try:
@@ -60,25 +64,7 @@ def chat_gateway():
     user_message = data.get("message", "").strip()
     history = data.get("history", [])
 
-    # 3. Match Routing Intercept: Images
-    msg_lower = user_message.lower()
-    if msg_lower.startswith("generate image of ") or msg_lower.startswith("draw "):
-        description = user_message.replace("generate image of ", "", 1).replace("draw ", "", 1).strip()
-        encoded_desc = urllib.parse.quote(description)
-        img_url = f"https://image.pollinations.ai/prompt/{encoded_desc}?width=1024&height=1024&nologo=true"
-        return jsonify({"type": "image", "description": description, "url": img_url})
-
-    # 4. Match Routing Intercept: Live Search Intent
-    search_keywords = ["search for", "weather in", "latest news", "who is", "what happened"]
-    if any(keyword in msg_lower for keyword in search_keywords):
-        cleaned_query = user_message
-        for kw in search_keywords:
-            cleaned_query = cleaned_query.lower().replace(kw, "").strip()
-        
-        search_results = web_search(cleaned_query if cleaned_query else user_message)
-        return jsonify({"type": "text", "reply": f"<b>Kevaris Live Intelligence:</b><br><br>{search_results}"})
-
-    # 5. Fallback: Core Text Conversation LLM Process
+    # 3. Format Conversation Pipeline
     formatted_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for turn in history:
         content = turn.get("content", "")
@@ -91,24 +77,38 @@ def chat_gateway():
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": formatted_messages,
-        "temperature": 0.6
+        "temperature": 0.4
     }
 
     try:
+        # 4. Generate Core Decision from the LLM
         response = requests.post(LLAMA_API_URL, json=payload, headers=headers, timeout=10)
         response_json = response.json()
         
-        print("API Response:", response_json) 
-        
-        # Safe Response Framework (Handles API outages cleanly without code failure)
         if 'error' in response_json:
             return jsonify({"error": f"Groq Engine Error: {response_json['error'].get('message', 'Access Restricted')}"}), 400
             
         if 'choices' not in response_json or not response_json['choices']:
             return jsonify({"error": "Invalid engine response payload received."}), 500
 
-        reply_text = response_json['choices'][0]['message']['content']
+        reply_text = response_json['choices'][0]['message']['content'].strip()
+        reply_lower = reply_text.lower()
+
+        # 5. Output Sequence Evaluation Engine
+        if reply_lower.startswith("generate image:"):
+            description = reply_text[15:].strip()
+            encoded_desc = urllib.parse.quote(description)
+            img_url = f"https://image.pollinations.ai/prompt/{encoded_desc}?width=1024&height=1024&nologo=true"
+            return jsonify({"type": "image", "description": description, "url": img_url})
+
+        elif reply_lower.startswith("web search:"):
+            search_query = reply_text[11:].strip()
+            search_results = web_search(search_query)
+            return jsonify({"type": "text", "reply": f"<b>Kevaris Live Intelligence:</b><br><br>{search_results}"})
+
+        # Standard Text Output Fallback
         return jsonify({"type": "text", "reply": reply_text})
+
     except Exception as e:
         return jsonify({"error": f"Internal LLM Pipeline Core Error: {str(e)}"}), 500
         
