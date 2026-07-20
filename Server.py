@@ -15,7 +15,7 @@ SERVER_STATUS = True
 HARDWARE_CODE = "kevaris 57744"
 SERPER_KEY = "11f4e3ba0023119ec28fce5f7053a6a7bd989de1"
 LLAMA_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-LLAMA_API_KEY = os.environ.get("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")
+LLAMA_API_KEY = os.environ.get("GROQ_API_KEY")
 
 SYSTEM_PROMPT = """You are Kevaris, a personal AI assistant created in 2025.
 
@@ -119,4 +119,3 @@ def health_check():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-    
