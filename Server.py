@@ -2,13 +2,13 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import urllib.parse
+import re
 import os
 
 app = Flask(__name__)
 CORS(app)  # Enables cross-origin framework browser requests securely
 
 # --- SERVER CONFIGURATION CONTROL ---
-# Set this to True for normal operations, or False to shut down response services
 SERVER_STATUS = True 
 
 # Global Constants & Server Keys
@@ -17,20 +17,19 @@ SERPER_KEY = "11f4e3ba0023119ec28fce5f7053a6a7bd989de1"
 LLAMA_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 LLAMA_API_KEY = os.environ.get("GROQ_API_KEY")
 
-SYSTEM_PROMPT = """CRITICAL MANDATE: YOU MUST FIRST CHECK IF THE USER IS ASKING FOR IMAGES OR LIVE/CURRENT INFORMATION. YOU ARE FORBIDDEN FROM SAYING YOU ARE A TEXT-BASED AI OR AN LLM WITHOUT ACCESS.
+SYSTEM_PROMPT = """You are Kevaris, a personal AI assistant created in 2025.
 
-1. IMAGE GENERATION TRIGGER:
-- If the user asks you to draw, visualize, paint, sketch, create, or generate any image/picture, your entire response MUST consist ONLY of: "generate image: [clear descriptive prompt for what to draw]". 
-- DO NOT say "Sure, I can help with that", DO NOT add any conversational filler. Start directly with "generate image: ".
+CREATOR RULE:
+- You were created by RIDDHI PANDIT, a computer science expert.
+- Riddhi made his first AI model Evenor in class 7 (2025) using HTML. He upgraded it to Trevium in late 2025, and modified it into Kevaris in early 2026. Kevaris is built using 70% HTML and 30% Python.
+- Riddhi Pandit received primary hardware assistance from Salif Khan and SK Anik Afroz.
 
-2. LIVE DATA / WEB SEARCH TRIGGER:
-- If the user asks about live events, sports results today, current news headlines, dates, weather, or anything beyond your training cutoff, your entire response MUST consist ONLY of: "web search: [clean search query]".
-- DO NOT say "I don't have real-time access". Start directly with "web search: ".
-
-GENERAL IDENTITY RULES:
-- You are Kevaris, a personal AI assistant created in 2025.
-- You were created by RIDDHI PANDIT, a computer science expert. Riddhi made his first AI model Evenor in class 7 (2025) using HTML. He upgraded it to Trevium in late 2025, and modified it into Kevaris in early 2026. Kevaris is built using 70% HTML and 30% Python.
-- Always speak directly in the second person. Be friendly, concise, polite, and loyal to the user."""
+IDENTITY RULES:
+- Always speak directly in the second person.
+- Be friendly, concise, polite, and loyal to the user.
+- Maintain an encouraging and respectful tone at all times.
+- If asking about current events, output MUST start with 'web search: <query>'.
+- If asking for images/drawings, output MUST start with 'generate image: <prompt>'."""
 
 def web_search(query):
     try:
@@ -48,11 +47,11 @@ def web_search(query):
 def chat_gateway():
     data = request.json or {}
     
-    # 1. Device Token Signature Handshake
+    # 1. Device Token Handshake
     if data.get("code") != HARDWARE_CODE:
         return jsonify({"error": "🔴 HARDWARE REJECTION: Unauthorized Device Token Blueprint Security Exception."}), 403
 
-    # 2. Master Kill Switch / Server Status Intercept
+    # 2. Master Kill Switch
     if not SERVER_STATUS:
         return jsonify({
             "type": "text", 
@@ -61,8 +60,26 @@ def chat_gateway():
 
     user_message = data.get("message", "").strip()
     history = data.get("history", [])
+    msg_lower = user_message.lower()
 
-    # 3. Format Conversation Pipeline
+    # --- 3. HARD INTERCEPT LAYER (BULLETPROOF PRE-CHECK) ---
+    
+    # Image Generation Keyword Trigger
+    image_keywords = ["draw", "generate a picture", "generate image", "imagine an dragon", "create an image", "picture of", "paint"]
+    if any(kw in msg_lower for kw in image_keywords):
+        # Extract prompt or clean message
+        description = re.sub(r'^(can you|please|imagine|draw|generate|create|a picture of|an image of)\s*', '', user_message, flags=re.IGNORECASE).strip()
+        encoded_desc = urllib.parse.quote(description if description else user_message)
+        img_url = f"https://image.pollinations.ai/prompt/{encoded_desc}?width=1024&height=1024&nologo=true"
+        return jsonify({"type": "image", "description": description, "url": img_url})
+
+    # Web Search Keyword Trigger
+    search_keywords = ["who won", "match today", "team won", "news", "weather", "today's headlines", "score", "latest"]
+    if any(kw in msg_lower for kw in search_keywords):
+        search_results = web_search(user_message)
+        return jsonify({"type": "text", "reply": f"<b>Kevaris Live Intelligence:</b><br><br>{search_results}"})
+
+    # --- 4. FALLBACK TO LLM PROCESS ---
     formatted_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for turn in history:
         content = turn.get("content", "")
@@ -75,11 +92,10 @@ def chat_gateway():
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": formatted_messages,
-        "temperature": 0.1  # Set ultra-low to enforce absolute rule adherence
+        "temperature": 0.3
     }
 
     try:
-        # 4. Generate Core Decision from the LLM
         response = requests.post(LLAMA_API_URL, json=payload, headers=headers, timeout=10)
         response_json = response.json()
         
@@ -92,7 +108,7 @@ def chat_gateway():
         reply_text = response_json['choices'][0]['message']['content'].strip()
         reply_lower = reply_text.lower()
 
-        # 5. Output Sequence Evaluation Engine
+        # Secondary LLM Prefix Intercept
         if reply_lower.startswith("generate image:"):
             description = reply_text[15:].strip()
             encoded_desc = urllib.parse.quote(description)
@@ -104,7 +120,6 @@ def chat_gateway():
             search_results = web_search(search_query)
             return jsonify({"type": "text", "reply": f"<b>Kevaris Live Intelligence:</b><br><br>{search_results}"})
 
-        # Standard Text Output Fallback
         return jsonify({"type": "text", "reply": reply_text})
 
     except Exception as e:
